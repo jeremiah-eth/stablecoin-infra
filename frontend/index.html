@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MyStablecoin App</title>
+  <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+</head>
+<body>
+  <h1>MyStablecoin Demo</h1>
+  <button onclick="connectWallet()">Connect Wallet</button>
+  <p id="account"></p>
+  <p id="balance"></p>
+  <div>
+    <input id="mintAmount" type="number" placeholder="Amount to mint (tokens)">
+    <button onclick="mintTokens()">Mint Tokens</button>
+    <p id="mintStatus"></p>
+  </div>
+
+  <script>
+    const contractAddress = "0xDA0bab807633f07f013f94DD0E6A4F96F8742B53"; 
+    const abi = []; // Paste ABI from Remix
+
+    let contract;
+    let signer;
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert("Install MetaMask!");
+        return;
+      }
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      const account = await signer.getAddress();
+      document.getElementById("account").innerText = `Account: ${account}`;
+
+      contract = new ethers.Contract(contractAddress, abi, signer);
+      const balance = await contract.balanceOf(account);
+      document.getElementById("balance").innerText = `Balance: ${ethers.utils.formatEther(balance)} MSC`;
+    }
+
+    async function mintTokens() {
+      if (!contract || !signer) {
+        alert("Connect wallet first!");
+        return;
+      }
+      const amount = document.getElementById("mintAmount").value;
+      if (!amount || amount <= 0) {
+        alert("Enter a valid amount!");
+        return;
+      }
+      try {
+        const tx = await contract.mint(await signer.getAddress(), ethers.utils.parseEther(amount));
+        await tx.wait();
+        document.getElementById("mintStatus").innerText = `Minted ${amount} MSC!`;
+        const balance = await contract.balanceOf(await signer.getAddress());
+        document.getElementById("balance").innerText = `Balance: ${ethers.utils.formatEther(balance)} MSC`;
+      } catch (error) {
+        document.getElementById("mintStatus").innerText = `Error: ${error.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
